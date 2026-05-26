@@ -1,0 +1,392 @@
+/* 🌑 Global */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+  overflow-x: hidden;
+}
+
+/* 🔝 Navbar */
+#navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #020617;
+  padding: 10px 20px;
+  border-bottom: 1px solid #1e293b;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.nav-left {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.nav-links button {
+  margin-left: 10px;
+  padding: 6px 12px;
+  background: #1e293b;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.nav-links button:hover {
+  background: #334155;
+}
+
+/* 🔄 Reload bar */
+.reload-bar {
+  padding: 10px 20px;
+  text-align: right;
+  border-bottom: 1px solid #1e293b;
+  background: #0b1220;
+}
+
+.reload-bar button {
+  padding: 6px 12px;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  background: #1e293b;
+  color: #fff;
+}
+
+.reload-bar button:hover {
+  background: #334155;
+}
+
+/* 📦 Main */
+#app {
+  padding: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-card {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  background: #0b1220;
+}
+
+.player-list {
+  display: grid;
+  gap: 10px;
+}
+
+/* ===== DESKTOP TABLE (FIXED) ===== */
+.table-header,
+.player-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.player-row {
+  background: #111827;
+  border: 1px solid #1f2937;
+}
+
+.table-header {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Text */
+.player-name {
+  font-weight: 600;
+}
+
+.player-rating,
+.player-rank {
+  color: #cbd5e1;
+}
+
+.rating-col {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 12px;
+}
+
+.special {
+  border-left: 5px solid #cc66ff;
+}
+
+/* Highlight */
+.player-row.titled {
+  background: linear-gradient(90deg, rgba(255,215,0,0.15), transparent);
+}
+
+.muted {
+  color: #94a3b8;
+}
+
+/* ⏳ Spinner */
+.spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #334155;
+  border-top: 5px solid #38bdf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 🚪 Popup */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+}
+
+.popup {
+  background: #020617;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 320px;
+  border: 1px solid #1e293b;
+}
+
+.popup input {
+  width: 100%;
+  padding: 8px 10px;
+  margin: 10px 0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: white;
+}
+
+.popup-buttons button {
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #1e293b;
+  color: white;
+}
+
+/* Skeleton */
+.skeleton {
+  display: inline-block;
+  min-width: 80px;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Titles grid */
+.titles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.title-card {
+  padding: 15px;
+  border-radius: 12px;
+  background: #1e1e1e;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease;
+}
+
+.title-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Tier colors */
+.elite { border-left: 5px solid #ff4d4d; }
+.grand { border-left: 5px solid #ff9933; }
+.master { border-left: 5px solid #ffd700; }
+.candidate { border-left: 5px solid #4da6ff; }
+.candidate-light { border-left: 5px solid #66ccff; }
+.intermediate { border-left: 5px solid #66ff99; }
+.beginner { border-left: 5px solid #cccccc; }
+
+/* ===== MOBILE (BEST PRACTICE) ===== */
+@media (max-width: 768px) {
+
+  #app {
+    padding: 12px;
+  }
+
+  #navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-links button {
+    margin-left: 0;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .player-row {
+    display: block;
+    padding: 12px;
+  }
+
+  .player-row span {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+
+  .player-row span::before {
+    content: attr(data-label);
+    color: #94a3b8;
+    font-size: 12px;
+  }
+}
+/* PROFILE CARD */
+.profile-card {
+  background: var(--card-bg, #111);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* HEADER */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* LICHESS BUTTON */
+.lichess-btn {
+  text-decoration: none;
+  background: #2e7d32;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.lichess-btn:hover {
+  background: #1b5e20;
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+/* STAT CARD */
+.stat-card {
+  background: #1a1a1a;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.stat-card span {
+  display: block;
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.stat-card strong {
+  font-size: 1.4rem;
+}
+.about-card {
+  max-width: 700px;
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  line-height: 1.6;
+}
+
+.about-main {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.about-sub {
+  opacity: 0.7;
+  margin-bottom: 15px;
+}
+
+/* 🔥 Link styling (no underline, clean color) */
+.about-card a {
+  color: #4da3ff; /* adjust to your theme */
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.about-card a:hover {
+  text-decoration: underline;
+}
+.hidden {
+  display: none !important;
+}
