@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RK Titles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+  <!-- 🔝 NAVBAR -->
+  <header id="navbar">
+    <div class="nav-left">RK Titles</div>
+    <nav class="nav-links">
+      <button onclick="navigate('home')">Home</button>
+      <button onclick="navigate('players')">Players</button>
+      <button onclick="navigate('titles')">Titles</button>
+      <button id="youNavBtn" onclick="navigate('you')" class="hidden">Profile</button>
+      <button onclick="navigate('about')">About</button>
+    </nav>
+  </header>
+
+  <!-- 🔄 PAGE RELOAD BUTTON -->
+  <div class="reload-bar">
+    <button onclick="reloadPage()">⟳ Reload</button>
+  </div>
+
+  <!-- 📦 MAIN APP -->
+  <main id="app">
+    <!-- Pages will be rendered here -->
+  </main>
+
+  <!-- ⏳ GLOBAL SPINNER -->
+  <div id="globalSpinner" class="spinner-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- 🚪 USERNAME POPUP -->
+  <div id="userPopup" class="popup-overlay hidden">
+    <div class="popup">
+      <h2>RK Titles</h2>
+      <p>Enter your Lichess username</p>
+
+      <input id="usernameInput" type="text" placeholder="Username">
+
+      <div class="popup-buttons">
+        <button onclick="submitUsername()">Continue</button>
+        <button onclick="skipUsername()">I'm not a player</button>
+      </div>
+
+      <p id="popupError" class="error hidden">User not found. Try again.</p>
+    </div>
+  </div>
+
+  <!-- Scripts (order matters later) -->
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/players.js"></script>
+  <script src="js/pages/titles.js"></script>
+  <script src="js/pages/you.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
