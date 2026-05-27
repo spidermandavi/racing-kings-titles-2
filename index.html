@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Racing Kings Titles</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: rgba(30, 41, 59, 0.78);
+      --accent: #22d3ee;
+      --accent-2: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #1e293b, #0b1120 55%, #020617);
+      overflow-x: hidden;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1rem;
+      backdrop-filter: blur(8px);
+      background: rgba(2, 6, 23, 0.6);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .nav-left, .nav-right { display: flex; gap: 0.6rem; }
+
+    .icon-btn {
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--text);
+      background: rgba(30, 41, 59, 0.7);
+      border-radius: 10px;
+      padding: 0.45rem 0.8rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+
+    main {
+      width: min(1080px, 92%);
+      margin: 2.2rem auto 3rem;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0.8rem 0 2rem;
+      color: var(--muted);
+      max-width: 60ch;
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .option {
+      background: linear-gradient(160deg, rgba(56,189,248,0.14), rgba(34,211,238,0.08)), var(--card);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 16px;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 1rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      animation: fadeInUp 0.65s ease both;
+    }
+
+    .option:nth-child(2) { animation-delay: 0.1s; }
+    .option:nth-child(3) { animation-delay: 0.2s; }
+    .option:nth-child(4) { animation-delay: 0.3s; }
+    .option:nth-child(5) { animation-delay: 0.4s; }
+
+    .option:hover {
+      transform: translateY(-6px);
+      border-color: var(--accent-2);
+      box-shadow: 0 15px 28px rgba(2, 132, 199, 0.22);
+    }
+
+    .option h2 { margin: 0 0 0.35rem; font-size: 1.2rem; text-transform: capitalize; }
+    .option p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+    .menu-panel {
+      margin-top: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 12px;
+      padding: 0.8rem;
+      background: rgba(15, 23, 42, 0.8);
+      display: none;
+    }
+
+    .menu-panel.open { display: block; }
+
+    .menu-panel a {
+      color: var(--text);
+      margin-right: 0.8rem;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="nav-left">
+      <button class="icon-btn" id="backBtn" aria-label="Go back">&lt;</button>
+      <button class="icon-btn" id="forwardBtn" aria-label="Go forward">&gt;</button>
+    </div>
+    <div class="nav-right">
+      <button class="icon-btn" id="menuBtn" aria-label="Open menu">☰ Menu</button>
+    </div>
+  </header>
+
+  <main>
+    <h1>Racing Kings Titles</h1>
+    <p class="subtitle">Choose a section to explore players, your profile, search results, title collections, and background information about Racing Kings Titles.</p>
+
+    <section class="grid" id="optionsGrid"></section>
+
+    <nav id="menuPanel" class="menu-panel" aria-label="Quick Menu"></nav>
+  </main>
+
+  <script>
+    const pages = [
+      { slug: 'players', label: 'Players', desc: 'View featured racers and rankings.' },
+      { slug: 'profile', label: 'Profile', desc: 'Manage account details and stats.' },
+      { slug: 'search', label: 'Search', desc: 'Find races, titles, and players.' },
+      { slug: 'titles', label: 'Titles', desc: 'Browse championships and records.' },
+      { slug: 'about', label: 'About', desc: 'Learn what Racing Kings Titles is about.' }
+    ];
+
+    const optionsGrid = document.getElementById('optionsGrid');
+    const menuPanel = document.getElementById('menuPanel');
+
+    pages.forEach((page) => {
+      const card = document.createElement('a');
+      card.href = `${page.slug}.html`;
+      card.className = 'option';
+      card.innerHTML = `<h2>${page.label}</h2><p>${page.desc}</p>`;
+      optionsGrid.appendChild(card);
+
+      const link = document.createElement('a');
+      link.href = `${page.slug}.html`;
+      link.textContent = page.label;
+      menuPanel.appendChild(link);
+    });
+
+    document.getElementById('menuBtn').addEventListener('click', () => {
+      menuPanel.classList.toggle('open');
+    });
+
+    document.getElementById('backBtn').addEventListener('click', () => history.back());
+    document.getElementById('forwardBtn').addEventListener('click', () => history.forward());
+  </script>
+</body>
+</html>
