@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Racing Kings Titles - Profile</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e2e8f0;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    .card {
+      width: min(760px, 96%);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+      padding: 1.4rem;
+      background: rgba(15, 23, 42, 0.76);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+    h1 {
+      margin-top: 0;
+    }
+    a { color: #22d3ee; text-decoration: none; }
+    .profile-form {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #e2e8f0;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.95rem;
+    }
+    button {
+      border: 1px solid rgba(34, 211, 238, 0.65);
+      border-radius: 10px;
+      background: rgba(34, 211, 238, 0.18);
+      color: #67e8f9;
+      padding: 0.55rem 0.95rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background: rgba(34, 211, 238, 0.28);
+    }
+    .status {
+      min-height: 1.1rem;
+      margin: 0.5rem 0 1rem;
+      color: #94a3b8;
+      font-size: 0.92rem;
+    }
+    .error {
+      color: #fca5a5;
+    }
+    .profile-grid {
+      display: grid;
+      grid-template-columns: minmax(170px, 240px) 1fr;
+      row-gap: 0.65rem;
+      column-gap: 1rem;
+      align-items: baseline;
+    }
+    .label {
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .value {
+      word-break: break-word;
+    }
+    @media (max-width: 640px) {
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="card">
+    <h1>Profile</h1>
+    <p>Enter a Lichess username to load Racing Kings profile data.</p>
+
+    <form class="profile-form" id="profile-form">
+      <input id="username-input" name="username" type="text" autocomplete="off" placeholder="Lichess username" required />
+      <button type="submit">Load Profile</button>
+    </form>
+
+    <p class="status" id="status"></p>
+    <div id="profile-output" class="profile-grid" hidden></div>
+
+    <p><a href="index.html">← Back to Home</a></p>
+  </section>
+
+  <script>
+    const STORAGE_KEY = "rk_profile_username";
+    const form = document.getElementById("profile-form");
+    const usernameInput = document.getElementById("username-input");
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("profile-output");
+
+    const setStatus = (text, isError = false) => {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("error", isError);
+    };
+
+    const formatPercent = (wins, games) => {
+      if (!games) return "N/A";
+      return `${((wins / games) * 100).toFixed(1)}%`;
+    };
+
+    const addRow = (label, value, isHtml = false) => {
+      const labelEl = document.createElement("div");
+      labelEl.className = "label";
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement("div");
+      valueEl.className = "value";
+      if (isHtml) {
+        valueEl.innerHTML = value;
+      } else {
+        valueEl.textContent = value;
+      }
+
+      outputEl.append(labelEl, valueEl);
+    };
+
+    const getRacingKingsRank = async (username) => {
+      const response = await fetch("https://lichess.org/player/top/200/racingKings", {
+        headers: { Accept: "application/json" }
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not fetch Racing Kings leaderboard.");
+      }
+
+      const data = await response.json();
+      const users = data?.users || [];
+      const index = users.findIndex((user) => user.id?.toLowerCase() === username.toLowerCase());
+      return index >= 0 ? index + 1 : "Outside top 200";
+    };
+
+    const loadProfile = async (rawUsername) => {
+      const username = rawUsername.trim();
+      if (!username) {
+        setStatus("Please enter a username.", true);
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, username);
+      outputEl.hidden = true;
+      outputEl.innerHTML = "";
+      setStatus("Loading profile data...");
+
+      try {
+        const [userResponse, perfResponse, rank] = await Promise.all([
+          fetch(`https://lichess.org/api/user/${encodeURIComponent(username)}`, {
+            headers: { Accept: "application/json" }
+          }),
+          fetch(`https://lichess.org/api/user/${encodeURIComponent(username)}/perf/racingKings`, {
+            headers: { Accept: "application/json" }
+          }),
+          getRacingKingsRank(username)
+        ]);
+
+        if (!userResponse.ok) {
+          throw new Error("User not found on Lichess.");
+        }
+
+        const userData = await userResponse.json();
+        const perfData = perfResponse.ok ? await perfResponse.json() : null;
+
+        const rkPerf = userData?.perfs?.racingKings || {};
+        const rkCount = perfData?.stat?.count || {};
+        const rkGames = rkCount.all ?? rkPerf.games ?? 0;
+        const rkWins = rkCount.win ?? 0;
+        const rkWinrate = formatPercent(rkWins, rkGames);
+
+        const name = userData?.profile?.firstName
+          ? `${userData.profile.firstName}${userData.profile.lastName ? ` ${userData.profile.lastName}` : ""}`
+          : userData.username;
+        const title = userData?.title || "None";
+        const rkTitle = (userData?.title && userData.title.startsWith("RK")) ? userData.title : "None";
+        const highestRating = perfData?.stat?.highest?.int ?? rkPerf.rating ?? "N/A";
+
+        addRow("Name", name);
+        addRow("Racing Kings rating", String(rkPerf.rating ?? "N/A"));
+        addRow("Current RK leaderboard rank", String(rank));
+        addRow("Titles", title);
+        addRow("Racing Kings titles", rkTitle);
+        addRow("Racing Kings games", String(rkGames));
+        addRow("Racing Kings winrate", rkWinrate);
+        addRow("Highest RK rating", String(highestRating));
+        addRow(
+          "Lichess profile",
+          `<a href="https://lichess.org/@/${encodeURIComponent(userData.username)}" target="_blank" rel="noopener noreferrer">https://lichess.org/@/${userData.username}</a>`,
+          true
+        );
+
+        outputEl.hidden = false;
+        setStatus(`Loaded data for ${userData.username}.`);
+      } catch (error) {
+        setStatus(error.message || "Unable to load profile data.", true);
+      }
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      loadProfile(usernameInput.value);
+    });
+
+    const savedUsername = localStorage.getItem(STORAGE_KEY);
+    if (savedUsername) {
+      usernameInput.value = savedUsername;
+      loadProfile(savedUsername);
+    }
+  </script>
+</body>
+</html>
