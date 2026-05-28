@@ -20,8 +20,6 @@
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
       font-family: Inter, system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #0f172a, #1e293b);
       color: var(--text);
@@ -105,10 +103,88 @@
     }
 
     .btn:hover { border-color: var(--accent); text-decoration: none; }
+    .top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  backdrop-filter: blur(8px);
+  background: rgba(2, 6, 23, 0.6);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  width: 100%;
+}
+
+.nav-left,
+.nav-right {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.icon-btn {
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: var(--text);
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 10px;
+  padding: 0.45rem 0.8rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.icon-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.menu-panel {
+  position: fixed;
+  top: 70px;
+  right: 1rem;
+  z-index: 99;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: rgba(15, 23, 42, 0.95);
+  display: none;
+  backdrop-filter: blur(10px);
+}
+
+.menu-panel.open {
+  display: block;
+}
+
+.menu-panel a {
+  display: block;
+  color: var(--text);
+  text-decoration: none;
+  margin: 0.4rem 0;
+}
+
+.menu-panel a:hover {
+  color: var(--accent);
+}
   </style>
 </head>
 <body>
-  <section class="card">
+
+<header class="top-bar">
+  <div class="nav-left">
+    <button class="icon-btn" id="backBtn">&lt;</button>
+    <button class="icon-btn" id="forwardBtn">&gt;</button>
+  </div>
+
+  <div class="nav-right">
+    <button class="icon-btn" id="menuBtn">☰ Menu</button>
+  </div>
+</header>
+
+<nav id="menuPanel" class="menu-panel"></nav>
+  
+  <main style="display:grid; place-items:center; padding:1.2rem;">
+<section class="card">
     <h1>Players</h1>
     <p id="status">Loading top Racing Kings players from Lichess…</p>
     <div id="playersList"></div>
@@ -233,6 +309,37 @@
     playersList.appendChild(row);
   }
 
+  // ===== MENU =====
+
+const pages = [
+  { slug: 'index', label: 'Home' },
+  { slug: 'players', label: 'Players' },
+  { slug: 'profile', label: 'Profile' },
+  { slug: 'search', label: 'Search' },
+  { slug: 'titles', label: 'Titles' },
+  { slug: 'about', label: 'About' }
+];
+
+const menuPanel = document.getElementById('menuPanel');
+
+pages.forEach((page) => {
+  const link = document.createElement('a');
+  link.href = `${page.slug}.html`;
+  link.textContent = page.label;
+  menuPanel.appendChild(link);
+});
+
+document.getElementById('menuBtn')
+  .addEventListener('click', () => {
+    menuPanel.classList.toggle('open');
+  });
+
+document.getElementById('backBtn')
+  .addEventListener('click', () => history.back());
+
+document.getElementById('forwardBtn')
+  .addEventListener('click', () => history.forward());
+  
   // ===== MAIN LOADING =====
 
   async function loadPlayers() {
@@ -314,5 +421,6 @@
 
   loadPlayers();
 </script>
+</main>
 </body>
 </html>
