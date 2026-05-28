@@ -114,32 +114,154 @@
     <div id="playersList"></div>
     <p><a href="index.html">← Back to Home</a></p>
   </section>
+  
+<script>
+  const playersList = document.getElementById('playersList');
+  const statusEl = document.getElementById('status');
 
-  <script>
-    const playersList = document.getElementById('playersList');
-    const statusEl = document.getElementById('status');
+  // ===== LOADING OVERLAY =====
+  const loader = document.createElement('div');
 
-    function formatPercent(value) {
-      if (!Number.isFinite(value)) return 'N/A';
-      return `${value.toFixed(1)}%`;
+  loader.innerHTML = `
+    <div class="spinner"></div>
+    <div id="loadingText">Loading players... 0%</div>
+  `;
+
+  Object.assign(loader.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(15,23,42,0.82)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '1rem',
+    zIndex: '9999',
+    backdropFilter: 'blur(6px)',
+    transition: 'opacity 0.4s ease'
+  });
+
+  const spinnerStyle = document.createElement('style');
+  spinnerStyle.textContent = `
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 5px solid rgba(255,255,255,0.15);
+      border-top-color: #22d3ee;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
     }
 
-    function getSiteTitle(user) {
-      return user.profile?.rkSiteTitle || 'None';
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
-    async function fetchTopPlayers() {
+    #loadingText {
+      color: white;
+      font-size: 1rem;
+    }
+  `;
+
+  document.head.appendChild(spinnerStyle);
+  document.body.appendChild(loader);
+
+  const loadingText = document.getElementById('loadingText');
+
+  // ===== HELPERS =====
+
+  function formatPercent(value) {
+    if (!Number.isFinite(value)) return 'N/A';
+    return `${value.toFixed(1)}%`;
+  }
+
+  function getSiteTitle(user) {
+    return user.profile?.rkSiteTitle || 'None';
+  }
+
+  // ===== RENDER SINGLE PLAYER =====
+
+  function renderPlayer(user, index) {
+    const rk = user.perfs?.racingKings || {};
+    const games = rk.games || 0;
+
+    const rkStats = user.rkPerfStats || {};
+    const wins = rkStats.win || 0;
+    const winRate = games ? (wins / games) * 100 : Number.NaN;
+
+    const row = document.createElement('article');
+    row.className = 'player-row';
+
+    const username = user.username || user.id || 'Unknown';
+    const rating = rk.rating ?? 'N/A';
+    const highest = rk?.highest?.int ?? 'N/A';
+    const lichessTitle = user.title || 'None';
+    const siteTitle = getSiteTitle(user);
+
+    row.innerHTML = `
+      <div class="row-top">
+        <span>${index + 1}. <a class="player-link" href="#">${username}</a></span>
+        <span class="rating">${rating}</span>
+      </div>
+
+      <div class="player-details">
+        <ul>
+          <li><strong>Lichess title:</strong> ${lichessTitle}</li>
+          <li><strong>Site title:</strong> ${siteTitle}</li>
+          <li><strong>Racing Kings games:</strong> ${games}</li>
+          <li><strong>Winrate:</strong> ${formatPercent(winRate)}</li>
+          <li><strong>Highest rating:</strong> ${highest}</li>
+        </ul>
+
+        <div class="detail-actions">
+          <a class="btn"
+             href="https://lichess.org/@/${encodeURIComponent(username)}"
+             target="_blank">
+             Lichess Profile
+          </a>
+        </div>
+      </div>
+    `;
+
+    const link = row.querySelector('.player-link');
+    const details = row.querySelector('.player-details');
+
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      details.classList.toggle('open');
+    });
+
+    playersList.appendChild(row);
+  }
+
+  // ===== MAIN LOADING =====
+
+  async function loadPlayers() {
+    try {
+      statusEl.textContent = 'Loading top Racing Kings players...';
+
       const topRes = await fetch('https://lichess.org/api/player/top/10/racingKings', {
         headers: { Accept: 'application/json' }
       });
-      if (!topRes.ok) throw new Error('Could not fetch top player list from Lichess.');
+
+      if (!topRes.ok) {
+        throw new Error('Failed to load leaderboard.');
+      }
 
       const topData = await topRes.json();
       const users = topData.users || [];
 
-      const enrichedUsers = await Promise.all(users.map(async (u) => {
-        const detailRes = await fetch(`https://lichess.org/api/user/${encodeURIComponent(u.id)}`);
-        const perfRes = await fetch(`https://lichess.org/api/user/${encodeURIComponent(u.id)}/perf/racingKings`);
+      let loaded = 0;
+
+      // Progressive loading
+      const promises = users.map(async (u, index) => {
+
+        const detailRes = await fetch(
+          `https://lichess.org/api/user/${encodeURIComponent(u.id)}`
+        );
+
+        const perfRes = await fetch(
+          `https://lichess.org/api/user/${encodeURIComponent(u.id)}/perf/racingKings`
+        );
 
         let detail = {};
         let perf = {};
@@ -147,72 +269,50 @@
         if (detailRes.ok) detail = await detailRes.json();
         if (perfRes.ok) perf = await perfRes.json();
 
-        return { ...u, ...detail, rkPerfStats: perf.stat || {} };
-      }));
+        const finalUser = {
+          ...u,
+          ...detail,
+          rkPerfStats: perf.stat || {}
+        };
 
-      return enrichedUsers;
-    }
+        // Render IMMEDIATELY
+        renderPlayer(finalUser, index);
 
-    function renderPlayers(users) {
-      if (!users.length) {
-        statusEl.textContent = 'No players returned by Lichess right now.';
-        return;
-      }
+        loaded++;
 
-      statusEl.textContent = 'Top 10 Racing Kings players on Lichess:';
+        const percent = Math.round((loaded / users.length) * 100);
 
-      users.forEach((user, index) => {
-        const rk = user.perfs?.racingKings || {};
-        const games = rk.games || 0;
-        const rkStats = user.rkPerfStats || {};
-        const wins = rkStats.win || 0;
-        const winRate = games ? (wins / games) * 100 : Number.NaN;
+        loadingText.textContent =
+          `Loading players... ${percent}%`;
 
-        const row = document.createElement('article');
-        row.className = 'player-row';
-
-        const username = user.username || user.id || 'Unknown';
-        const rating = rk.rating ?? 'N/A';
-        const highest = rk?.highest?.int ?? 'N/A';
-        const lichessTitle = user.title || 'None';
-        const siteTitle = getSiteTitle(user);
-
-        row.innerHTML = `
-          <div class="row-top">
-            <span>${index + 1}. <a class="player-link" href="#">${username}</a></span>
-            <span class="rating">${rating}</span>
-          </div>
-          <div class="player-details" id="details-${index}">
-            <ul>
-              <li><strong>Lichess title:</strong> ${lichessTitle}</li>
-              <li><strong>Site title:</strong> ${siteTitle}</li>
-              <li><strong>Racing Kings games:</strong> ${games}</li>
-              <li><strong>Winrate (Racing Kings):</strong> ${formatPercent(winRate)}</li>
-              <li><strong>Highest Racing Kings rating:</strong> ${highest}</li>
-            </ul>
-            <div class="detail-actions">
-              <button class="btn" type="button">More</button>
-              <a class="btn" href="https://lichess.org/@/${encodeURIComponent(username)}" target="_blank" rel="noopener noreferrer">See Lichess profile</a>
-            </div>
-          </div>
-        `;
-
-        const link = row.querySelector('.player-link');
-        const details = row.querySelector('.player-details');
-        link.addEventListener('click', (event) => {
-          event.preventDefault();
-          details.classList.toggle('open');
-        });
-
-        playersList.appendChild(row);
+        statusEl.textContent =
+          `Loaded ${loaded} of ${users.length} players`;
       });
-    }
 
-    fetchTopPlayers()
-      .then(renderPlayers)
-      .catch((error) => {
-        statusEl.textContent = `Error: ${error.message}`;
-      });
-  </script>
+      await Promise.all(promises);
+
+      statusEl.textContent = 'Top 10 Racing Kings players loaded.';
+
+      // Remove spinner smoothly
+      loader.style.opacity = '0';
+
+      setTimeout(() => {
+        loader.remove();
+      }, 400);
+
+    } catch (error) {
+
+      statusEl.textContent = error.message;
+
+      loadingText.textContent = 'Loading failed';
+
+      setTimeout(() => {
+        loader.remove();
+      }, 1200);
+    }
+  }
+
+  loadPlayers();
+</script>
 </body>
 </html>
