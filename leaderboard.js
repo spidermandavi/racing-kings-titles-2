@@ -38,14 +38,11 @@ document
   .addEventListener("click", () => history.forward());
 
 const titlePriority = {
-  RKSGM: 7,
-  RKGM: 6,
-  RKM: 5,
-  RKCM: 4,
-  RKC: 3,
-  RKI: 2,
-  RKB: 1,
-  RKK: 999
+  RKSGM: 5,
+  RKGM: 4,
+  RKIM: 3,
+  RKM: 2,
+  RKCM: 1,
 };
 
 const specialTitles = [
@@ -57,12 +54,10 @@ const specialTitles = [
 const titleClassMap = {
   RKSGM: "elite",
   RKGM: "grand",
-  RKM: "master",
-  RKCM: "candidate",
-  RKC: "candidate-light",
-  RKI: "intermediate",
-  RKB: "beginner",
-  RKK: "elite"
+  RKIM: "master",
+  RKM: "candidate",
+  RKCM: "candidate-light",
+  RKWC: "elite"
 };
 
 function normalizeTitle(title) {
