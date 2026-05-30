@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RK Leaderboard</title>
+
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/leaderboard.css">
+</head>
+
+<body>
+  <header class="top-bar">
+    <div class="nav-left">
+      <button class="icon-btn" id="backBtn" aria-label="Go back">&lt;</button>
+      <button class="icon-btn" id="forwardBtn" aria-label="Go forward">&gt;</button>
+    </div>
+
+    <div class="nav-right">
+      <button class="icon-btn" id="menuBtn" aria-label="Open menu">☰ Menu</button>
+    </div>
+  </header>
+
+  <nav id="menuPanel" class="menu-panel" aria-label="Quick Menu"></nav>
+
+  <main>
+    <h1>Titled Player Leaderboard</h1>
+    <div id="leaderboard"></div>
+  </main>
+
+  <script src="leaderboard.js"></script>
+  <script src="js/menu.js"></script>
+</body>
+</html>
