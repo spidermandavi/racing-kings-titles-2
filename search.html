@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RK Title Checker</title>
+
+  <link rel="stylesheet" href="css/global.css">
+
+  <style>
+    .tool {
+      max-width: 600px;
+      margin: 2rem auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    input, select, button {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+    }
+
+    button {
+      cursor: pointer;
+      background: #1e88e5;
+      border: none;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #1565c0;
+    }
+
+    .result {
+      padding: 1rem;
+      border-radius: 10px;
+      background: #1a1a1a;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+
+    .ok { color: #4caf50; }
+    .bad { color: #ff5252; }
+  </style>
+</head>
+
+<body>
+
+<main class="tool">
+  <h1>RK Title Checker</h1>
+
+  <input id="username" placeholder="Lichess username" />
+
+  <select id="title">
+    <option value="RKCM">RKCM</option>
+    <option value="RKM">RKM</option>
+    <option value="RKIM">RKIM</option>
+    <option value="RKGM">RKGM</option>
+    <option value="RKSGM">RKSGM</option>
+    <option value="RKV">RKV</option>
+    <option value="RK Member">RK Member</option>
+    <option value="RKHM">RKHM</option>
+    <option value="RKWC">RKWC</option>
+  </select>
+
+  <button onclick="checkTitle()">Calculate</button>
+
+  <div id="result" class="result">Enter data and press Calculate.</div>
+</main>
+
+<script>
+async function getUser(username) {
+  const res = await fetch(`https://lichess.org/api/user/${username}`);
+  if (!res.ok) throw new Error("User not found");
+  return await res.json();
+}
+
+// NOTE: Lichess does NOT provide full RK tournament win data via simple API.
+// This is a placeholder system you may later upgrade with your own backend.
+function getTournamentStats(user) {
+  return {
+    wins: 0,
+    performances2400: 0,
+    performances2300: 0,
+    performances2200: 0,
+    performances2100: 0
+  };
+}
+
+function check(title, user) {
+  const rk = user.perfs?.racingkings || {};
+  const games = rk.games || 0;
+  const rating = rk.rating || 0;
+
+  const t = getTournamentStats(user);
+
+  switch(title) {
+
+    case "RKSGM":
+      return (
+        games >= 5000 &&
+        rating >= 2500 &&
+        t.wins >= 2 &&
+        t.performances2400 >= 5 &&
+        user.shieldWins >= 1
+      );
+
+    case "RKGM":
+      return (
+        games >= 3000 &&
+        rating >= 2400 &&
+        t.wins >= 1 &&
+        t.performances2400 >= 3
+      );
+
+    case "RKIM":
+      return (
+        games >= 2000 &&
+        rating >= 2300 &&
+        t.wins >= 3 &&
+        t.performances2300 >= 3
+      );
+
+    case "RKM":
+      return (
+        games >= 1000 &&
+        rating >= 2200 &&
+        t.wins >= 3 &&
+        t.performances2200 >= 3
+      );
+
+    case "RKCM":
+      return (
+        games >= 500 &&
+        rating >= 2100 &&
+        t.wins >= 3 &&
+        t.performances2100 >= 3
+      );
+
+    case "RKV":
+      return (
+        games >= 10000 ||
+        user.createdAtYears >= 5
+      );
+
+    default:
+      return false;
+  }
+}
+
+function showMessage(title, ok) {
+  const el = document.getElementById("result");
+
+  if (title === "RKWC") {
+    el.innerHTML = `
+      ❗ RKWC is not automatically checkable.<br><br>
+      You must win a Racing Kings World Championship.<br>
+      Talk to Mysterious_Past if necessary.<br><br>
+      <b>Got the requirements? Contact Mysterious_Past!</b>
+    `;
+    return;
+  }
+
+  if (title === "RKHM") {
+    el.innerHTML = `
+      ❗ RKHM cannot be calculated automatically.<br><br>
+      Talk to Mysterious_Past about this title.<br><br>
+      <b>Got the requirements? Contact Mysterious_Past!</b>
+    `;
+    return;
+  }
+
+  if (title === "RK Member") {
+    el.innerHTML = `
+      ℹ️ RK Member is not calculated.<br><br>
+      Simply apply for a certificate by contacting Mysterious_Past.<br><br>
+      <b>Got the requirements? Contact Mysterious_Past!</b>
+    `;
+    return;
+  }
+
+  el.innerHTML = ok
+    ? `<span class="ok">✔ You meet the requirements!</span><br><b>Got the requirements? Contact Mysterious_Past!</b>`
+    : `<span class="bad">✖ You do NOT meet the requirements.</span><br><b>Got the requirements? Contact Mysterious_Past!</b>`;
+}
+
+async function checkTitle() {
+  const username = document.getElementById("username").value.trim();
+  const title = document.getElementById("title").value;
+  const result = document.getElementById("result");
+
+  if (!username) {
+    result.textContent = "Please enter a username.";
+    return;
+  }
+
+  result.textContent = "Checking...";
+
+  try {
+    const user = await getUser(username);
+
+    const ok = check(title, user);
+    showMessage(title, ok);
+
+  } catch (e) {
+    result.textContent = "User not found or API error.";
+  }
+}
+</script>
+
+</body>
+</html>
