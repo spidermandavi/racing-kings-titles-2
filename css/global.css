@@ -124,7 +124,7 @@ body {
 /* ---------- Menu ---------- */
 
 .menu-panel {
-  position: absolute;
+  position: fixed;
   top: 65px;
   right: 1rem;
 
