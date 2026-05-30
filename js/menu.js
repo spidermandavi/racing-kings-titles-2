@@ -46,4 +46,13 @@ document.addEventListener("DOMContentLoaded", () => {
       history.forward();
     });
   }
+  document.addEventListener("click", (e) => {
+  if (
+    menuPanel &&
+    menuBtn &&
+    !menuPanel.contains(e.target) &&
+    !menuBtn.contains(e.target)
+  ) {
+    menuPanel.classList.remove("open");
+  }
 });
