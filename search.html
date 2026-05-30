@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RK Title Checker</title>
+
+  <link rel="stylesheet" href="css/global.css">
+
+  <style>
+    :root {
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-2: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.12);
+      --ok: #4caf50;
+      --bad: #ff5252;
+      --text-soft: rgba(255, 255, 255, 0.75);
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .tool {
+      max-width: 760px;
+      margin: 2rem auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .title-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .title-row h1 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .field label {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+    }
+
+    input, select, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    button {
+      cursor: pointer;
+      background: #1e88e5;
+      border: none;
+      font-weight: 600;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #1565c0;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: progress;
+    }
+
+    .result {
+      padding: 1rem;
+      border-radius: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      min-height: 80px;
+      white-space: pre-wrap;
+      line-height: 1.55;
+    }
+
+    .ok { color: var(--ok); font-weight: 700; }
+    .bad { color: var(--bad); font-weight: 700; }
+
+    .muted {
+      color: var(--text-soft);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+    }
+
+    .summary-item {
+      padding: 0.8rem;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-label {
+      display: block;
+      font-size: 0.86rem;
+      color: var(--text-soft);
+      margin-bottom: 0.25rem;
+    }
+
+    .summary-value {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    details {
+      margin-top: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.75rem 0.9rem;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .breakdown {
+      margin: 0.75rem 0 0;
+      font-size: 0.95rem;
+      color: var(--text-soft);
+      white-space: pre-wrap;
+    }
+
+    a.contact-link {
+      color: #8ec5ff;
+      text-decoration: none;
+    }
+
+    a.contact-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="tool">
+    <section class="card title-row">
+      <h1>RK Title Checker</h1>
+      <p class="subtitle">
+        Enter a Lichess username, choose a title, and the tool will scan the user's recent tournaments,
+        filter Racing Kings rated events, and check the requirements automatically.
+      </p>
+    </section>
+
+    <section class="card">
+      <form id="checkerForm">
+        <div class="field">
+          <label for="username">Lichess username</label>
+          <input id="username" placeholder="e.g. Mysterious_Past" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="title">Title</label>
+          <select id="title">
+            <option value="RKCM">RKCM</option>
+            <option value="RKM">RKM</option>
+            <option value="RKIM">RKIM</option>
+            <option value="RKGM">RKGM</option>
+            <option value="RKSGM">RKSGM</option>
+            <option value="RKV">RKV</option>
+            <option value="RK Member">RK Member</option>
+            <option value="RKHM">RKHM</option>
+            <option value="RKWC">RKWC</option>
+          </select>
+        </div>
+
+        <button id="calculateBtn" type="submit">Calculate</button>
+      </form>
+    </section>
+
+    <section id="result" class="result card">Enter a username and press Calculate.</section>
+  </main>
+
+  <script>
+    const MYSTERIOUS_PAST_URL = "https://lichess.org/@/Mysterious_Past";
+
+    const checkerForm = document.getElementById("checkerForm");
+    const calculateBtn = document.getElementById("calculateBtn");
+    const resultEl = document.getElementById("result");
+    const usernameInput = document.getElementById("username");
+    const titleSelect = document.getElementById("title");
+
+    const TITLE_RULES = {
+      RKSGM: { minGames: 5000, minBestRating: 2500, winsNeeded: 2, perfNeeded: 5, perfThreshold: 2400, shieldWinsNeeded: 1, winOnly: false },
+      RKGM:  { minGames: 3000, minBestRating: 2400, winsNeeded: 1, perfNeeded: 3, perfThreshold: 2400, shieldWinsNeeded: 0, winOnly: false },
+      RKIM:  { minGames: 2000, minBestRating: 2300, winsNeeded: 3, perfNeeded: 3, perfThreshold: 2300, shieldWinsNeeded: 0, winOnly: true },
+      RKM:   { minGames: 1000, minBestRating: 2200, winsNeeded: 3, perfNeeded: 3, perfThreshold: 2200, shieldWinsNeeded: 0, winOnly: true },
+      RKCM:  { minGames: 500,  minBestRating: 2100, winsNeeded: 3, perfNeeded: 3, perfThreshold: 2100, shieldWinsNeeded: 0, winOnly: true },
+      RKV:   { minGames: 10000, minBestRating: 0,    winsNeeded: 0, perfNeeded: 0, perfThreshold: 0,    shieldWinsNeeded: 0, winOnly: false }
+    };
+
+    const CACHE_PREFIX = "rk_title_checker_";
+
+    checkerForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      checkTitle();
+    });
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizeName(name) {
+      return String(name || "").trim().toLowerCase();
+    }
+
+    function formatYears(years) {
+      if (years === null || years === undefined || Number.isNaN(years)) return "unknown";
+      return `${years.toFixed(1)} years`;
+    }
+
+    function getAccountAgeYears(user) {
+      const candidates = [
+        user?.createdAt,
+        user?.created_at,
+        user?.seenAt,
+        user?.seen_at
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate === null || candidate === undefined) continue;
+
+        let ms = null;
+
+        if (typeof candidate === "number") {
+          ms = candidate < 1e12 ? candidate * 1000 : candidate;
+        } else if (typeof candidate === "string") {
+          const parsed = Date.parse(candidate);
+          if (!Number.isNaN(parsed)) ms = parsed;
+        }
+
+        if (ms) {
+          return (Date.now() - ms) / (1000 * 60 * 60 * 24 * 365.25);
+        }
+      }
+
+      return null;
+    }
+
+    function getBestRKRating(user) {
+      const rk = user?.perfs?.racingkings || user?.perfs?.racingKings || {};
+      return rk?.best?.rating || rk?.rating || 0;
+    }
+
+    function getCurrentRKRating(user) {
+      const rk = user?.perfs?.racingkings || user?.perfs?.racingKings || {};
+      return rk?.rating || 0;
+    }
+
+    async function getUser(username) {
+      const res = await fetch(`https://lichess.org/api/user/${encodeURIComponent(username)}`);
+      if (!res.ok) throw new Error("User not found");
+      return await res.json();
+    }
+
+    async function getRecentTournamentIds(username) {
+      const cacheKey = `${CACHE_PREFIX}recent_ids_${normalizeName(username)}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length) return parsed;
+        } catch (_) {}
+      }
+
+      const res = await fetch(`https://lichess.org/@/${encodeURIComponent(username)}/tournaments/recent`);
+      if (!res.ok) throw new Error("Could not load recent tournaments page");
+
+      const html = await res.text();
+      const matches = [...html.matchAll(/\/tournament\/([a-zA-Z0-9]+)/g)];
+      const ids = [...new Set(matches.map(m => m[1]))];
+
+      localStorage.setItem(cacheKey, JSON.stringify(ids));
+      return ids;
+    }
+
+    async function fetchTournamentMeta(tournamentId) {
+      const cacheKey = `${CACHE_PREFIX}tmeta_${tournamentId}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (_) {}
+      }
+
+      const meta = {
+        id: tournamentId,
+        name: `Tournament ${tournamentId}`,
+        rated: null,
+        isRacingKings: null,
+        shield: false
+      };
+
+      try {
+        const apiRes = await fetch(`https://lichess.org/api/tournament/${encodeURIComponent(tournamentId)}`, {
+          headers: { Accept: "application/json" }
+        });
+
+        if (apiRes.ok) {
+          const apiText = await apiRes.text();
+          if (apiText) {
+            try {
+              const data = JSON.parse(apiText);
+
+              meta.name =
+                data.fullName ||
+                data.name ||
+                data.id ||
+                meta.name;
+
+              if (typeof data.rated === "boolean") meta.rated = data.rated;
+
+              const variant =
+                data.variant ||
+                data?.perf?.icon ||
+                data?.clock?.variant ||
+                "";
+
+              if (typeof variant === "string") {
+                meta.isRacingKings = /racing.?kings/i.test(variant);
+              }
+
+              if (typeof meta.name === "string") {
+                meta.shield = /shield/i.test(meta.name);
+              }
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const pageRes = await fetch(`https://lichess.org/tournament/${encodeURIComponent(tournamentId)}`);
+        if (pageRes.ok) {
+          const html = await pageRes.text();
+
+          if (!meta.name || meta.name.startsWith("Tournament ")) {
+            const titleMatch =
+              html.match(/<title>(.*?)<\/title>/i) ||
+              html.match(/<meta property="og:title" content="(.*?)"/i);
+
+            if (titleMatch?.[1]) {
+              meta.name = titleMatch[1]
+                .replace(/\s*\|\s*Lichess.*$/i, "")
+                .trim();
+            }
+          }
+
+          if (meta.rated === null) {
+            if (/Rated/i.test(html) && !/Casual/i.test(html)) meta.rated = true;
+            if (/Casual/i.test(html)) meta.rated = false;
+          }
+
+          if (meta.isRacingKings === null) {
+            if (/Racing Kings/i.test(html) || /racingKings/i.test(html)) {
+              meta.isRacingKings = true;
+            }
+          }
+
+          if (!meta.shield) {
+            meta.shield = /shield/i.test(html) || /shield/i.test(meta.name);
+          }
+        }
+      } catch (_) {}
+
+      localStorage.setItem(cacheKey, JSON.stringify(meta));
+      return meta;
+    }
+
+    async function fetchTournamentGames(tournamentId) {
+      const cacheKey = `${CACHE_PREFIX}games_${tournamentId}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (_) {}
+      }
+
+      const response = await fetch(
+        `https://lichess.org/api/tournament/${encodeURIComponent(tournamentId)}/games`,
+        {
+          headers: {
+            Accept: "application/x-ndjson"
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Could not load games for tournament ${tournamentId}`);
+      }
+
+      const text = await response.text();
+      const games = text
+        .split("\n")
+        .filter(line => line.trim() !== "")
+        .map(line => JSON.parse(line));
+
+      localStorage.setItem(cacheKey, JSON.stringify(games));
+      return games;
+    }
+
+    function initPlayer(players, name, rating, provisional) {
+      if (!players[name]) {
+        players[name] = {
+          startRating: rating || 0,
+          endRating: rating || 0,
+          performance: rating || 0,
+          provisional: !!provisional,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          games: 0,
+          score: 0,
+          currentStreak: 0,
+          bestStreak: 0
+        };
+      }
+    }
+
+    function updateStreak(player, won) {
+      if (won) {
+        player.currentStreak++;
+        if (player.currentStreak > player.bestStreak) {
+          player.bestStreak = player.currentStreak;
+        }
+      } else {
+        player.currentStreak = 0;
+      }
+    }
+
+    function updateRatings(players, white, black) {
+      players[white.user.name].endRating = white.rating + (white.ratingDiff || 0);
+      players[black.user.name].endRating = black.rating + (black.ratingDiff || 0);
+
+      if (white.ratingDiff !== undefined) {
+        players[white.user.name].performance += white.ratingDiff;
+      }
+
+      if (black.ratingDiff !== undefined) {
+        players[black.user.name].performance += black.ratingDiff;
+      }
+    }
+
+    function calculateTournamentStats(games) {
+      const players = {};
+      const openingMap = {};
+
+      let totalMoves = 0;
+      let validGames = 0;
+
+      let berserkGames = 0;
+      let totalGames = 0;
+
+      let whiteWins = 0;
+      let blackWins = 0;
+      let draws = 0;
+
+      let longestGame = null;
+      let shortestGame = null;
+
+      games.forEach(game => {
+        totalGames++;
+
+        const moves = game.moves ? game.moves.split(" ") : [];
+        const moveCount = moves.length;
+
+        const white = game.players?.white;
+        const black = game.players?.black;
+
+        if (!white?.user?.name || !black?.user?.name) {
+          return;
+        }
+
+        initPlayer(players, white.user.name, white.rating, white.provisional);
+        initPlayer(players, black.user.name, black.rating, black.provisional);
+
+        players[white.user.name].games++;
+        players[black.user.name].games++;
+
+        const winner = game.winner || "draw";
+
+        if (winner === "white") {
+          whiteWins++;
+
+          players[white.user.name].wins++;
+          players[black.user.name].losses++;
+          players[white.user.name].score += 1;
+
+          updateStreak(players[white.user.name], true);
+          updateStreak(players[black.user.name], false);
+
+        } else if (winner === "black") {
+          blackWins++;
+
+          players[black.user.name].wins++;
+          players[white.user.name].losses++;
+          players[black.user.name].score += 1;
+
+          updateStreak(players[black.user.name], true);
+          updateStreak(players[white.user.name], false);
+
+        } else {
+          draws++;
+
+          players[white.user.name].draws++;
+          players[black.user.name].draws++;
+          players[white.user.name].score += 0.5;
+          players[black.user.name].score += 0.5;
+
+          updateStreak(players[white.user.name], false);
+          updateStreak(players[black.user.name], false);
+        }
+
+        if (white.berserk) berserkGames++;
+        if (black.berserk) berserkGames++;
+
+        if (moveCount > 0) {
+          validGames++;
+          totalMoves += moveCount;
+
+          if (!longestGame || moveCount > longestGame.moves) {
+            longestGame = {
+              id: game.id,
+              moves: moveCount,
+              white: white.user.name,
+              black: black.user.name
+            };
+          }
+
+          if (!shortestGame || moveCount < shortestGame.moves) {
+            shortestGame = {
+              id: game.id,
+              moves: moveCount,
+              white: white.user.name,
+              black: black.user.name
+            };
+          }
+
+          const openingKey = moves.slice(0, 8).join(" ");
+          if (openingKey) {
+            openingMap[openingKey] = (openingMap[openingKey] || 0) + 1;
+          }
+        }
+
+        updateRatings(players, white, black);
+      });
+
+      const playerArray = Object.entries(players).map(([name, data]) => {
+        const gamesPlayed = data.games;
+
+        return {
+          name,
+          ...data,
+          winRate: gamesPlayed >= 10 ? (data.wins / gamesPlayed) * 100 : null,
+          lossRate: gamesPlayed >= 10 ? (data.losses / gamesPlayed) * 100 : null,
+          ratingChange: data.endRating - data.startRating
+        };
+      });
+
+      const totalPlayers = playerArray.length;
+
+      const establishedPlayers = playerArray.filter(p => !p.provisional);
+
+      const averageRating = totalPlayers
+        ? Math.round(
+            playerArray.reduce((sum, p) => sum + p.startRating, 0) / totalPlayers
+          )
+        : 0;
+
+      const bestUnder2000 = playerArray
+        .filter(p => p.startRating < 2000)
+        .sort((a, b) => {
+          if (b.games !== a.games) return b.games - a.games;
+          return b.performance - a.performance;
+        })[0] || null;
+
+      return {
+        overview: {
+          totalPlayers,
+          averageRating,
+          berserkRate: percentage(berserkGames, totalGames * 2),
+          whiteWinPercentage: percentage(whiteWins, totalGames),
+          blackWinPercentage: percentage(blackWins, totalGames),
+          drawPercentage: percentage(draws, totalGames),
+          averageMoves: validGames ? (totalMoves / validGames).toFixed(2) : "0.00"
+        },
+        standings: playerArray.sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          if (b.performance !== a.performance) return b.performance - a.performance;
+          return b.games - a.games;
+        }),
+        topGainers: sortDesc(establishedPlayers, "ratingChange").slice(0, 3),
+        topLosers: sortAsc(establishedPlayers, "ratingChange").slice(0, 3),
+        topWinRates: playerArray.filter(p => p.winRate !== null).sort((a, b) => b.winRate - a.winRate).slice(0, 3),
+        topLossRates: playerArray.filter(p => p.lossRate !== null).sort((a, b) => b.lossRate - a.lossRate).slice(0, 3),
+        topStreaks: playerArray.sort((a, b) => b.bestStreak - a.bestStreak).slice(0, 3),
+        mostGames: playerArray.sort((a, b) => b.games - a.games).slice(0, 3),
+        highestPerformance: playerArray.sort((a, b) => b.performance - a.performance).slice(0, 3),
+        lowestPerformance: playerArray.sort((a, b) => a.performance - b.performance).slice(0, 3),
+        mostPlayedOpenings: Object.entries(openingMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([moves, count]) => ({ moves, count })),
+        longestGame,
+        shortestGame,
+        bestUnder2000
+      };
+    }
+
+    function percentage(part, total) {
+      return total ? ((part / total) * 100).toFixed(2) : "0.00";
+    }
+
+    function sortDesc(arr, key) {
+      return [...arr].sort((a, b) => b[key] - a[key]);
+    }
+
+    function sortAsc(arr, key) {
+      return [...arr].sort((a, b) => a[key] - b[key]);
+    }
+
+    function getWinningPlayerName(stats) {
+      return stats?.standings?.[0]?.name || null;
+    }
+
+    async function analyzeTournamentForPlayer(tournamentId, username, meta) {
+      const games = await fetchTournamentGames(tournamentId);
+      const stats = calculateTournamentStats(games);
+
+      const targetName = normalizeName(username);
+      const target = stats.standings.find(p => normalizeName(p.name) === targetName);
+
+      if (!target) {
+        return null;
+      }
+
+      const winningPlayer = getWinningPlayerName(stats);
+      const wonTournament = winningPlayer
+        ? normalizeName(winningPlayer) === targetName
+        : false;
+
+      const performance = Math.round(target.performance);
+      const playerGames = target.games || 0;
+
+      return {
+        id: tournamentId,
+        name: meta?.name || `Tournament ${tournamentId}`,
+        rated: meta?.rated,
+        isRacingKings: meta?.isRacingKings,
+        shield: !!meta?.shield,
+        playerGames,
+        performance,
+        wonTournament,
+        score: target.score || 0
+      };
+    }
+
+    function titleNeedsWinOnly(title) {
+      return ["RKIM", "RKM", "RKCM"].includes(title);
+    }
+
+    function showSpecialMessage(title) {
+      if (title === "RKWC") {
+        resultEl.innerHTML = `
+          <div class="ok">RKWC is not automatically checkable.</div>
+          <p>
+            You must win a Racing Kings World Championship to get this title.<br>
+            Talk to Mysterious_Past if necessary.
+          </p>
+          <p>
+            <a class="contact-link" href="${MYSTERIOUS_PAST_URL}" target="_blank" rel="noopener noreferrer">
+              Open Mysterious_Past's profile
+            </a>
+          </p>
+          <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
+        `;
+        return true;
+      }
+
+      if (title === "RKHM") {
+        resultEl.innerHTML = `
+          <div class="ok">RKHM cannot be calculated automatically.</div>
+          <p>
+            Talk to Mysterious_Past about this title.
+          </p>
+          <p>
+            <a class="contact-link" href="${MYSTERIOUS_PAST_URL}" target="_blank" rel="noopener noreferrer">
+              Open Mysterious_Past's profile
+            </a>
+          </p>
+          <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
+        `;
+        return true;
+      }
+
+      if (title === "RK Member") {
+        resultEl.innerHTML = `
+          <div class="ok">RK Member is handled manually.</div>
+          <p>
+            Simply apply for a certificate by contacting Mysterious_Past.
+          </p>
+          <p>
+            <a class="contact-link" href="${MYSTERIOUS_PAST_URL}" target="_blank" rel="noopener noreferrer">
+              Open Mysterious_Past's profile
+            </a>
+          </p>
+          <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
+        `;
+        return true;
+      }
+
+      return false;
+    }
+
+    function renderResult({
+      username,
+      title,
+      user,
+      recentIds,
+      filteredTournaments,
+      usedTournaments,
+      totalRatedGames,
+      usedRatedGames,
+      targetCurrentRating,
+      targetBestRating,
+      accountAgeYears,
+      ok,
+      rule
+    }) {
+      const filterMode = titleNeedsWinOnly(title)
+        ? "win-only tournaments"
+        : "all qualifying tournaments";
+
+      const qualifyingTournaments = usedTournaments;
+      const perfCount = qualifyingTournaments.filter(t => t.playerGames >= 10 && t.performance >= rule.perfThreshold).length;
+      const winCount = qualifyingTournaments.filter(t => t.wonTournament && t.playerGames >= 10 && t.performance >= rule.perfThreshold).length;
+      const shieldWins = filteredTournaments.filter(t => t.shield && t.wonTournament && t.playerGames >= 10).length;
+
+      const breakdownLines = qualifyingTournaments.slice(0, 20).map((t, index) => {
+        const flags = [
+          t.rated === false ? "unrated" : null,
+          t.isRacingKings === false ? "not RK" : null,
+          t.wonTournament ? "won" : "not won",
+          t.shield ? "shield" : null
+        ].filter(Boolean).join(", ");
+
+        return `${index + 1}. ${t.name} — games: ${t.playerGames}, performance: ${t.performance}, ${flags}`;
+      });
+
+      const winnerText = titleNeedsWinOnly(title)
+        ? "For this title, only tournaments the player won are used for the performance checks."
+        : "For this title, all qualifying tournaments are used for the performance checks.";
+
+      const accountAgeText = accountAgeYears === null
+        ? "unknown"
+        : formatYears(accountAgeYears);
+
+      const requirementText = rule.minGames > 0
+        ? `${rule.minGames}+ rated RK games`
+        : "No minimum game count";
+
+      resultEl.innerHTML = `
+        <div class="${ok ? "ok" : "bad"}">${ok ? "✔ Requirements met" : "✖ Requirements not met"}</div>
+
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Username</span>
+            <span class="summary-value">${escapeHtml(username)}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Selected title</span>
+            <span class="summary-value">${escapeHtml(title)}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Recent tournaments found</span>
+            <span class="summary-value">${recentIds.length}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Qualifying tournaments</span>
+            <span class="summary-value">${filteredTournaments.length}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Used for this title</span>
+            <span class="summary-value">${usedTournaments.length} (${filterMode})</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Rated RK games counted</span>
+            <span class="summary-value">${totalRatedGames}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Rated RK games used</span>
+            <span class="summary-value">${usedRatedGames}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Best RK rating found</span>
+            <span class="summary-value">${targetBestRating}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Current RK rating</span>
+            <span class="summary-value">${targetCurrentRating}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Account age</span>
+            <span class="summary-value">${accountAgeText}</span>
+          </div>
+        </div>
+
+        <p style="margin-top: 1rem;">
+          <strong>What was checked:</strong><br>
+          ${escapeHtml(requirementText)}<br>
+          ${rule.minBestRating ? `${rule.minBestRating}+ rating reached` : ""}<br>
+          ${rule.winsNeeded ? `${rule.winsNeeded} tournament wins with 10+ games and performance ${rule.perfThreshold}+` : ""}<br>
+          ${rule.perfNeeded ? `${rule.perfNeeded} tournaments with performance ${rule.perfThreshold}+ and 10+ games` : ""}<br>
+          ${rule.shieldWinsNeeded ? `${rule.shieldWinsNeeded} RK Shield win` : ""}
+        </p>
+
+        <p>
+          <strong>Used performance checks:</strong><br>
+          Tournaments meeting performance threshold: ${perfCount}<br>
+          Tournament wins meeting performance threshold: ${winCount}<br>
+          RK Shield wins: ${shieldWins}
+        </p>
+
+        <p class="muted">
+          ${escapeHtml(winnerText)}
+        </p>
+
+        <details>
+          <summary>Show tournament breakdown</summary>
+          <div class="breakdown">${breakdownLines.length ? escapeHtml(breakdownLines.join("\n")) : "No qualifying tournaments were found."}</div>
+        </details>
+
+        <p style="margin-top: 1rem;">
+          <a class="contact-link" href="${MYSTERIOUS_PAST_URL}" target="_blank" rel="noopener noreferrer">
+            Open Mysterious_Past's profile
+          </a>
+        </p>
+
+        <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
+      `;
+    }
+
+    async function checkTitle() {
+      const username = usernameInput.value.trim();
+      const title = titleSelect.value;
+
+      if (!username) {
+        resultEl.textContent = "Please enter a username.";
+        return;
+      }
+
+      if (showSpecialMessage(title)) {
+        return;
+      }
+
+      const rule = TITLE_RULES[title];
+      if (!rule) {
+        resultEl.textContent = "Unknown title selected.";
+        return;
+      }
+
+      calculateBtn.disabled = true;
+      resultEl.textContent = "Checking player data and recent tournaments...";
+
+      try {
+        const user = await getUser(username);
+        const recentIds = await getRecentTournamentIds(username);
+
+        if (!recentIds.length) {
+          resultEl.innerHTML = `
+            <div class="bad">No recent tournaments were found on the user's Lichess profile.</div>
+            <p class="muted">Got the requirements? Contact Mysterious_Past!</p>
+          `;
+          return;
+        }
+
+        const filteredTournaments = [];
+        const targetName = normalizeName(username);
+
+        for (let i = 0; i < recentIds.length; i++) {
+          const tournamentId = recentIds[i];
+          resultEl.textContent = `Checking tournament ${i + 1} of ${recentIds.length}...`;
+
+          let meta = null;
+          try {
+            meta = await fetchTournamentMeta(tournamentId);
+          } catch (_) {
+            meta = { id: tournamentId, name: `Tournament ${tournamentId}`, rated: null, isRacingKings: null, shield: false };
+          }
+
+          if (meta.rated === false) continue;
+          if (meta.isRacingKings === false) continue;
+
+          let analyzed = null;
+          try {
+            analyzed = await analyzeTournamentForPlayer(tournamentId, username, meta);
+          } catch (_) {
+            continue;
+          }
+
+          if (!analyzed) continue;
+          if (analyzed.playerGames < 10) continue;
+
+          filteredTournaments.push(analyzed);
+        }
+
+        const totalRatedGames = filteredTournaments.reduce((sum, t) => sum + t.playerGames, 0);
+
+        const usedTournaments = titleNeedsWinOnly(title)
+          ? filteredTournaments.filter(t => t.wonTournament)
+          : filteredTournaments;
+
+        const usedRatedGames = usedTournaments.reduce((sum, t) => sum + t.playerGames, 0);
+
+        const targetCurrentRating = getCurrentRKRating(user);
+        const targetBestRating = getBestRKRating(user);
+        const accountAgeYears = getAccountAgeYears(user);
+
+        const perfThreshold = rule.perfThreshold;
+        const perfCount = usedTournaments.filter(t => t.playerGames >= 10 && t.performance >= perfThreshold).length;
+        const winCount = usedTournaments.filter(t => t.wonTournament && t.playerGames >= 10 && t.performance >= perfThreshold).length;
+        const shieldWins = filteredTournaments.filter(t => t.shield && t.wonTournament && t.playerGames >= 10).length;
+
+        const reachedRating = Math.max(targetCurrentRating, targetBestRating);
+
+        const meetsGameRequirement = totalRatedGames >= rule.minGames;
+        const meetsRatingRequirement = rule.minBestRating ? reachedRating >= rule.minBestRating : true;
+        const meetsWinRequirement = rule.winsNeeded ? winCount >= rule.winsNeeded : true;
+        const meetsPerfRequirement = rule.perfNeeded ? perfCount >= rule.perfNeeded : true;
+        const meetsShieldRequirement = rule.shieldWinsNeeded ? shieldWins >= rule.shieldWinsNeeded : true;
+        const meetsAgeRequirement = title === "RKV"
+          ? (totalRatedGames >= 10000 || (accountAgeYears !== null && accountAgeYears >= 5))
+          : true;
+
+        const ok =
+          meetsGameRequirement &&
+          meetsRatingRequirement &&
+          meetsWinRequirement &&
+          meetsPerfRequirement &&
+          meetsShieldRequirement &&
+          meetsAgeRequirement;
+
+        renderResult({
+          username,
+          title,
+          user,
+          recentIds,
+          filteredTournaments,
+          usedTournaments,
+          totalRatedGames,
+          usedRatedGames,
+          targetCurrentRating,
+          targetBestRating,
+          accountAgeYears,
+          ok,
+          rule
+        });
+
+      } catch (err) {
+        console.error(err);
+        resultEl.innerHTML = `
+          <div class="bad">User not found or API error.</div>
+          <p class="muted">
+            This can happen if the username is wrong, Lichess blocks the request, or the recent tournaments page could not be loaded.
+          </p>
+          <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
+        `;
+      } finally {
+        calculateBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
