@@ -29,34 +29,53 @@
     <div id="playersList"></div>
     <p><a href="index.html">← Back to Home</a></p>
   </section>
-  
-<script>
-  const playersList = document.getElementById('playersList');
-  const statusEl = document.getElementById('status');
+  <script>
+  const playersList = document.getElementById("playersList");
+  const statusEl = document.getElementById("status");
+
+  // ===== BUTTONS / FOOTER ACTIONS =====
+  const backLink = document.querySelector('a[href="index.html"]');
+  if (backLink) {
+    backLink.classList.add("btn");
+    const backWrap = backLink.parentElement;
+    if (backWrap) backWrap.classList.add("players-actions");
+  }
+
+  const top200Link = document.createElement("a");
+  top200Link.className = "btn";
+  top200Link.href = "https://lichess.org/player/top/200/racingKings";
+  top200Link.target = "_blank";
+  top200Link.rel = "noopener noreferrer";
+  top200Link.textContent = "See Top 200 on Lichess";
+
+  const top200Wrap = document.createElement("div");
+  top200Wrap.className = "players-actions";
+  top200Wrap.appendChild(top200Link);
+
+  playersList.insertAdjacentElement("afterend", top200Wrap);
 
   // ===== LOADING OVERLAY =====
-  const loader = document.createElement('div');
-
+  const loader = document.createElement("div");
   loader.innerHTML = `
     <div class="spinner"></div>
     <div id="loadingText">Loading players... 0%</div>
   `;
 
   Object.assign(loader.style, {
-    position: 'fixed',
-    inset: '0',
-    background: 'rgba(15,23,42,0.82)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '1rem',
-    zIndex: '9999',
-    backdropFilter: 'blur(6px)',
-    transition: 'opacity 0.4s ease'
+    position: "fixed",
+    inset: "0",
+    background: "rgba(15,23,42,0.82)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "1rem",
+    zIndex: "9999",
+    backdropFilter: "blur(6px)",
+    transition: "opacity 0.4s ease"
   });
 
-  const spinnerStyle = document.createElement('style');
+  const spinnerStyle = document.createElement("style");
   spinnerStyle.textContent = `
     .spinner {
       width: 56px;
@@ -80,36 +99,42 @@
   document.head.appendChild(spinnerStyle);
   document.body.appendChild(loader);
 
-  const loadingText = document.getElementById('loadingText');
+  const loadingText = document.getElementById("loadingText");
 
   // ===== HELPERS =====
-
   function formatPercent(value) {
-    if (!Number.isFinite(value)) return 'N/A';
+    if (!Number.isFinite(value)) return "N/A";
     return `${value.toFixed(1)}%`;
   }
 
   function getSiteTitle(user) {
-    return user.profile?.rkSiteTitle || 'None';
+    return user.profile?.rkSiteTitle || "None";
   }
-
-  // ===== RENDER SINGLE PLAYER =====
 
   function renderPlayer(user, index) {
     const rk = user.perfs?.racingKings || {};
-    const games = rk.games || 0;
+    const rkCount = user.rkPerfCount || {};
 
-    const rkStats = user.rkPerfStats || {};
-    const wins = rkStats.win || 0;
+    const games =
+      rkCount.all ??
+      rk.games ??
+      0;
+
+    const wins = rkCount.win ?? 0;
     const winRate = games ? (wins / games) * 100 : Number.NaN;
 
-    const row = document.createElement('article');
-    row.className = 'player-row';
+    const rating = rk.rating ?? "N/A";
+    const highest =
+      user.rkHighestRating ??
+      rk?.highest?.int ??
+      rating ??
+      "N/A";
 
-    const username = user.username || user.id || 'Unknown';
-    const rating = rk.rating ?? 'N/A';
-    const highest = rk?.highest?.int ?? 'N/A';
-    const lichessTitle = user.title || 'None';
+    const row = document.createElement("article");
+    row.className = "player-row";
+
+    const username = user.username || user.id || "Unknown";
+    const lichessTitle = user.title || "None";
     const siteTitle = getSiteTitle(user);
 
     row.innerHTML = `
@@ -130,127 +155,112 @@
         <div class="detail-actions">
           <a class="btn"
              href="https://lichess.org/@/${encodeURIComponent(username)}"
-             target="_blank">
+             target="_blank"
+             rel="noopener noreferrer">
              Lichess Profile
           </a>
         </div>
       </div>
     `;
 
-    const link = row.querySelector('.player-link');
-    const details = row.querySelector('.player-details');
+    const link = row.querySelector(".player-link");
+    const details = row.querySelector(".player-details");
 
-    link.addEventListener('click', (e) => {
+    link.addEventListener("click", (e) => {
       e.preventDefault();
-      details.classList.toggle('open');
+      details.classList.toggle("open");
     });
 
     playersList.appendChild(row);
   }
 
   // ===== MENU =====
+  const pages = [
+    { slug: "index", label: "Home" },
+    { slug: "players", label: "Players" },
+    { slug: "profile", label: "Profile" },
+    { slug: "search", label: "Search" },
+    { slug: "titles", label: "Titles" },
+    { slug: "about", label: "About" }
+  ];
 
-const pages = [
-  { slug: 'index', label: 'Home' },
-  { slug: 'players', label: 'Players' },
-  { slug: 'profile', label: 'Profile' },
-  { slug: 'search', label: 'Search' },
-  { slug: 'titles', label: 'Titles' },
-  { slug: 'about', label: 'About' }
-];
+  const menuPanel = document.getElementById("menuPanel");
 
-const menuPanel = document.getElementById('menuPanel');
-
-pages.forEach((page) => {
-  const link = document.createElement('a');
-  link.href = `${page.slug}.html`;
-  link.textContent = page.label;
-  menuPanel.appendChild(link);
-});
-
-document.getElementById('menuBtn')
-  .addEventListener('click', () => {
-    menuPanel.classList.toggle('open');
+  pages.forEach((page) => {
+    const link = document.createElement("a");
+    link.href = `${page.slug}.html`;
+    link.textContent = page.label;
+    menuPanel.appendChild(link);
   });
 
-document.getElementById('backBtn')
-  .addEventListener('click', () => history.back());
+  document.getElementById("menuBtn")
+    .addEventListener("click", () => {
+      menuPanel.classList.toggle("open");
+    });
 
-document.getElementById('forwardBtn')
-  .addEventListener('click', () => history.forward());
-  
+  document.getElementById("backBtn")
+    .addEventListener("click", () => history.back());
+
+  document.getElementById("forwardBtn")
+    .addEventListener("click", () => history.forward());
+
   // ===== MAIN LOADING =====
-
   async function loadPlayers() {
     try {
-      statusEl.textContent = 'Loading top Racing Kings players...';
+      statusEl.textContent = "Loading top Racing Kings players...";
 
-      const topRes = await fetch('https://lichess.org/api/player/top/10/racingKings', {
-        headers: { Accept: 'application/json' }
+      const topRes = await fetch("https://lichess.org/api/player/top/10/racingKings", {
+        headers: { Accept: "application/json" }
       });
 
       if (!topRes.ok) {
-        throw new Error('Failed to load leaderboard.');
+        throw new Error("Failed to load leaderboard.");
       }
 
       const topData = await topRes.json();
       const users = topData.users || [];
 
-      let loaded = 0;
+      const enrichedUsers = await Promise.all(
+        users.map(async (u) => {
+          const [detailRes, perfRes] = await Promise.all([
+            fetch(`https://lichess.org/api/user/${encodeURIComponent(u.id)}`, {
+              headers: { Accept: "application/json" }
+            }),
+            fetch(`https://lichess.org/api/user/${encodeURIComponent(u.id)}/perf/racingKings`, {
+              headers: { Accept: "application/json" }
+            })
+          ]);
 
-      // Progressive loading
-      const promises = users.map(async (u, index) => {
+          let detail = {};
+          let perf = {};
 
-        const detailRes = await fetch(
-          `https://lichess.org/api/user/${encodeURIComponent(u.id)}`
-        );
+          if (detailRes.ok) detail = await detailRes.json();
+          if (perfRes.ok) perf = await perfRes.json();
 
-        const perfRes = await fetch(
-          `https://lichess.org/api/user/${encodeURIComponent(u.id)}/perf/racingKings`
-        );
+          return {
+            ...u,
+            ...detail,
+            rkPerfCount: perf.stat?.count || {},
+            rkHighestRating: perf.stat?.highest?.int ?? null
+          };
+        })
+      );
 
-        let detail = {};
-        let perf = {};
+      playersList.innerHTML = "";
 
-        if (detailRes.ok) detail = await detailRes.json();
-        if (perfRes.ok) perf = await perfRes.json();
-
-        const finalUser = {
-          ...u,
-          ...detail,
-          rkPerfStats: perf.stat || {}
-        };
-
-        // Render IMMEDIATELY
-        renderPlayer(finalUser, index);
-
-        loaded++;
-
-        const percent = Math.round((loaded / users.length) * 100);
-
-        loadingText.textContent =
-          `Loading players... ${percent}%`;
-
-        statusEl.textContent =
-          `Loaded ${loaded} of ${users.length} players`;
+      enrichedUsers.forEach((user, index) => {
+        renderPlayer(user, index);
       });
 
-      await Promise.all(promises);
+      statusEl.textContent = "Top 10 Racing Kings players loaded.";
 
-      statusEl.textContent = 'Top 10 Racing Kings players loaded.';
-
-      // Remove spinner smoothly
-      loader.style.opacity = '0';
-
+      loader.style.opacity = "0";
       setTimeout(() => {
         loader.remove();
       }, 400);
-
     } catch (error) {
-
-      statusEl.textContent = error.message;
-
-      loadingText.textContent = 'Loading failed';
+      statusEl.textContent = error.message || "Failed to load players.";
+      loadingText.textContent = "Loading failed";
 
       setTimeout(() => {
         loader.remove();
@@ -260,6 +270,7 @@ document.getElementById('forwardBtn')
 
   loadPlayers();
 </script>
+
 </main>
   <script src="js/menu.js"></script>
 </body>
