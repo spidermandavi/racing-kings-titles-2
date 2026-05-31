@@ -234,3 +234,107 @@ h1 {
 
   border-color: var(--gold);
 }
+/* ---------- Players Page ---------- */
+
+#playersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.player-row {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1rem;
+}
+
+.player-link {
+  color: var(--silver-bright);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.player-link:hover {
+  color: var(--gold);
+}
+
+.rating {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.player-details {
+  display: none;
+  padding: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.player-details.open {
+  display: block;
+}
+
+.player-details ul {
+  margin: 0 0 1rem;
+  padding-left: 1.2rem;
+}
+
+.player-details li {
+  margin-bottom: 0.4rem;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #26364f,
+      #162131
+    );
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+
+  box-shadow:
+    0 0 12px rgba(212,175,55,0.25);
+}
+.players-main {
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+}
+
+.players-main .card {
+  width: min(900px, 100%);
+}
