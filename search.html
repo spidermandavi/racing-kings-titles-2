@@ -238,6 +238,10 @@
     };
 
     const CACHE_PREFIX = "rk_title_checker_";
+    const MAX_TOURNAMENTS_TO_CHECK = 100;
+    const LICHESS_HEADERS = {
+      Accept: "application/x-ndjson, application/json;q=0.9"
+    };
 
     checkerForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -291,13 +295,12 @@
     }
 
     function getBestRKRating(user) {
-      const rk = user?.perfs?.racingkings || user?.perfs?.racingKings || {};
+      const rk = getRKPerf(user);
       return rk?.best?.rating || rk?.rating || 0;
     }
 
     function getCurrentRKRating(user) {
-      const rk = user?.perfs?.racingkings || user?.perfs?.racingKings || {};
-      return rk?.rating || 0;
+      return getRKPerf(user)?.rating || 0;
     }
 
     async function getUser(username) {
@@ -306,8 +309,78 @@
       return await res.json();
     }
 
+    function getRKPerf(user) {
+      return user?.perfs?.racingKings || user?.perfs?.racingkings || {};
+    }
+
+    function getRatedRKGames(user) {
+      const games = getRKPerf(user)?.games;
+      return Number.isFinite(games) ? games : 0;
+    }
+
+    function parseNdjson(text) {
+      return text
+        .split("\n")
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+    }
+
+    function normalizeVariant(value) {
+      if (!value) return "";
+      if (typeof value === "string") return value;
+      return [value.key, value.name, value.short, value.id]
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    async function fetchJsonOrNdjson(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...LICHESS_HEADERS,
+          ...(options.headers || {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lichess request failed (${response.status})`);
+      }
+
+      const text = await response.text();
+      if (!text.trim()) return [];
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/x-ndjson") || text.trim().includes("\n")) {
+        return parseNdjson(text);
+      }
+
+      return JSON.parse(text);
+    }
+
+    function normalizePlayedTournament(entry) {
+      const tournament = entry?.tournament || entry || {};
+      const player = entry?.player || {};
+      const id = tournament.id || entry?.id;
+      const name = tournament.fullName || tournament.name || `Tournament ${id}`;
+      const variantText = normalizeVariant(tournament.variant || tournament.perf || tournament.clock?.variant);
+
+      return {
+        id,
+        name,
+        rated: typeof tournament.rated === "boolean" ? tournament.rated : null,
+        isRacingKings: variantText ? /racing.?kings/i.test(variantText) : null,
+        shield: /shield/i.test(name || ""),
+        startsAt: tournament.startsAt || 0,
+        playerGames: player.games || 0,
+        performance: player.performance || 0,
+        wonTournament: player.rank === 1,
+        score: player.score || 0
+      };
+    }
+
     async function getRecentTournamentIds(username) {
-      const cacheKey = `${CACHE_PREFIX}recent_ids_${normalizeName(username)}`;
+      const cacheKey = `${CACHE_PREFIX}played_tournaments_${normalizeName(username)}`;
       const cached = localStorage.getItem(cacheKey);
 
       if (cached) {
@@ -317,15 +390,24 @@
         } catch (_) {}
       }
 
-      const res = await fetch(`https://lichess.org/@/${encodeURIComponent(username)}/tournaments/recent`);
-      if (!res.ok) throw new Error("Could not load recent tournaments page");
+      const params = new URLSearchParams({
+        nb: String(MAX_TOURNAMENTS_TO_CHECK),
+        performance: "true"
+      });
 
-      const html = await res.text();
-      const matches = [...html.matchAll(/\/tournament\/([a-zA-Z0-9]+)/g)];
-      const ids = [...new Set(matches.map(m => m[1]))];
+      const played = await fetchJsonOrNdjson(
+        `https://lichess.org/api/user/${encodeURIComponent(username)}/tournament/played?${params.toString()}`
+      );
 
-      localStorage.setItem(cacheKey, JSON.stringify(ids));
-      return ids;
+      const tournaments = played
+        .map(normalizePlayedTournament)
+        .filter(tournament => tournament.id)
+        .filter(tournament => tournament.rated !== false)
+        .filter(tournament => tournament.isRacingKings !== false)
+        .sort((a, b) => b.startsAt - a.startsAt);
+
+      localStorage.setItem(cacheKey, JSON.stringify(tournaments));
+      return tournaments;
     }
 
     async function fetchTournamentMeta(tournamentId) {
@@ -346,76 +428,20 @@
         shield: false
       };
 
-      try {
-        const apiRes = await fetch(`https://lichess.org/api/tournament/${encodeURIComponent(tournamentId)}`, {
-          headers: { Accept: "application/json" }
-        });
+      const data = await fetchJsonOrNdjson(
+        `https://lichess.org/api/tournament/${encodeURIComponent(tournamentId)}`,
+        { headers: { Accept: "application/json" } }
+      );
 
-        if (apiRes.ok) {
-          const apiText = await apiRes.text();
-          if (apiText) {
-            try {
-              const data = JSON.parse(apiText);
+      meta.name = data.fullName || data.name || data.id || meta.name;
+      if (typeof data.rated === "boolean") meta.rated = data.rated;
 
-              meta.name =
-                data.fullName ||
-                data.name ||
-                data.id ||
-                meta.name;
+      const variantText = normalizeVariant(data.variant || data.perf || data.clock?.variant);
+      if (variantText) {
+        meta.isRacingKings = /racing.?kings/i.test(variantText);
+      }
 
-              if (typeof data.rated === "boolean") meta.rated = data.rated;
-
-              const variant =
-                data.variant ||
-                data?.perf?.icon ||
-                data?.clock?.variant ||
-                "";
-
-              if (typeof variant === "string") {
-                meta.isRacingKings = /racing.?kings/i.test(variant);
-              }
-
-              if (typeof meta.name === "string") {
-                meta.shield = /shield/i.test(meta.name);
-              }
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
-
-      try {
-        const pageRes = await fetch(`https://lichess.org/tournament/${encodeURIComponent(tournamentId)}`);
-        if (pageRes.ok) {
-          const html = await pageRes.text();
-
-          if (!meta.name || meta.name.startsWith("Tournament ")) {
-            const titleMatch =
-              html.match(/<title>(.*?)<\/title>/i) ||
-              html.match(/<meta property="og:title" content="(.*?)"/i);
-
-            if (titleMatch?.[1]) {
-              meta.name = titleMatch[1]
-                .replace(/\s*\|\s*Lichess.*$/i, "")
-                .trim();
-            }
-          }
-
-          if (meta.rated === null) {
-            if (/Rated/i.test(html) && !/Casual/i.test(html)) meta.rated = true;
-            if (/Casual/i.test(html)) meta.rated = false;
-          }
-
-          if (meta.isRacingKings === null) {
-            if (/Racing Kings/i.test(html) || /racingKings/i.test(html)) {
-              meta.isRacingKings = true;
-            }
-          }
-
-          if (!meta.shield) {
-            meta.shield = /shield/i.test(html) || /shield/i.test(meta.name);
-          }
-        }
-      } catch (_) {}
+      meta.shield = /shield/i.test(meta.name || "");
 
       localStorage.setItem(cacheKey, JSON.stringify(meta));
       return meta;
@@ -678,35 +704,58 @@
       return stats?.standings?.[0]?.name || null;
     }
 
-    async function analyzeTournamentForPlayer(tournamentId, username, meta) {
-      const games = await fetchTournamentGames(tournamentId);
-      const stats = calculateTournamentStats(games);
+    async function fetchTournamentResults(tournamentId) {
+      const cacheKey = `${CACHE_PREFIX}results_${tournamentId}`;
+      const cached = localStorage.getItem(cacheKey);
 
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (_) {}
+      }
+
+      const results = await fetchJsonOrNdjson(
+        `https://lichess.org/api/tournament/${encodeURIComponent(tournamentId)}/results?nb=200`
+      );
+
+      localStorage.setItem(cacheKey, JSON.stringify(results));
+      return results;
+    }
+
+    async function analyzeTournamentForPlayer(tournament, username, meta) {
+      const tournamentId = typeof tournament === "string" ? tournament : tournament.id;
+
+      if (typeof tournament === "object" && tournament.performance) {
+        return {
+          ...tournament,
+          name: meta?.name || tournament.name || `Tournament ${tournamentId}`,
+          rated: meta?.rated ?? tournament.rated,
+          isRacingKings: meta?.isRacingKings ?? tournament.isRacingKings,
+          shield: meta?.shield ?? tournament.shield
+        };
+      }
+
+      const results = await fetchTournamentResults(tournamentId);
       const targetName = normalizeName(username);
-      const target = stats.standings.find(p => normalizeName(p.name) === targetName);
+      const target = results.find(result => normalizeName(result.username || result.name) === targetName);
 
       if (!target) {
         return null;
       }
 
-      const winningPlayer = getWinningPlayerName(stats);
-      const wonTournament = winningPlayer
-        ? normalizeName(winningPlayer) === targetName
-        : false;
-
-      const performance = Math.round(target.performance);
-      const playerGames = target.games || 0;
+      const playerGames = target.nbGames || target.games || target.numberPlayed || tournament.playerGames || 0;
+      const rank = target.rank || results.findIndex(result => normalizeName(result.username || result.name) === targetName) + 1;
 
       return {
         id: tournamentId,
-        name: meta?.name || `Tournament ${tournamentId}`,
-        rated: meta?.rated,
-        isRacingKings: meta?.isRacingKings,
-        shield: !!meta?.shield,
+        name: meta?.name || tournament.name || `Tournament ${tournamentId}`,
+        rated: meta?.rated ?? tournament.rated,
+        isRacingKings: meta?.isRacingKings ?? tournament.isRacingKings,
+        shield: !!(meta?.shield ?? tournament.shield),
         playerGames,
-        performance,
-        wonTournament,
-        score: target.score || 0
+        performance: Math.round(target.performance || target.rating || tournament.performance || 0),
+        wonTournament: rank === 1,
+        score: target.score || tournament.score || 0
       };
     }
 
@@ -919,36 +968,37 @@
 
       try {
         const user = await getUser(username);
-        const recentIds = await getRecentTournamentIds(username);
+        const recentTournaments = await getRecentTournamentIds(username);
+        const recentIds = recentTournaments.map(tournament => tournament.id || tournament);
 
-        if (!recentIds.length) {
+        if (!recentTournaments.length) {
           resultEl.innerHTML = `
-            <div class="bad">No recent tournaments were found on the user's Lichess profile.</div>
+            <div class="bad">No recent rated Racing Kings tournaments were found by the Lichess API.</div>
             <p class="muted">Got the requirements? Contact Mysterious_Past!</p>
           `;
           return;
         }
 
         const filteredTournaments = [];
-        const targetName = normalizeName(username);
+        for (let i = 0; i < recentTournaments.length; i++) {
+          const tournament = recentTournaments[i];
+          const tournamentId = tournament.id || tournament;
+          resultEl.textContent = `Checking tournament ${i + 1} of ${recentTournaments.length}...`;
 
-        for (let i = 0; i < recentIds.length; i++) {
-          const tournamentId = recentIds[i];
-          resultEl.textContent = `Checking tournament ${i + 1} of ${recentIds.length}...`;
-
-          let meta = null;
-          try {
-            meta = await fetchTournamentMeta(tournamentId);
-          } catch (_) {
-            meta = { id: tournamentId, name: `Tournament ${tournamentId}`, rated: null, isRacingKings: null, shield: false };
-          }
+          const meta = {
+            id: tournamentId,
+            name: tournament.name || `Tournament ${tournamentId}`,
+            rated: tournament.rated,
+            isRacingKings: tournament.isRacingKings,
+            shield: tournament.shield
+          };
 
           if (meta.rated === false) continue;
           if (meta.isRacingKings === false) continue;
 
           let analyzed = null;
           try {
-            analyzed = await analyzeTournamentForPlayer(tournamentId, username, meta);
+            analyzed = await analyzeTournamentForPlayer(tournament, username, meta);
           } catch (_) {
             continue;
           }
@@ -959,7 +1009,7 @@
           filteredTournaments.push(analyzed);
         }
 
-        const totalRatedGames = filteredTournaments.reduce((sum, t) => sum + t.playerGames, 0);
+        const totalRatedGames = getRatedRKGames(user);
 
         const usedTournaments = titleNeedsWinOnly(title)
           ? filteredTournaments.filter(t => t.wonTournament)
@@ -1016,7 +1066,7 @@
         resultEl.innerHTML = `
           <div class="bad">User not found or API error.</div>
           <p class="muted">
-            This can happen if the username is wrong, Lichess blocks the request, or the recent tournaments page could not be loaded.
+            This can happen if the username is wrong, Lichess rate-limits the request, or the browser cannot reach the Lichess API.
           </p>
           <p><strong>Got the requirements? Contact Mysterious_Past!</strong></p>
         `;
